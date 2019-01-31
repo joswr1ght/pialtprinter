@@ -1,0 +1,2 @@
+/usr/bin/sudo -u pi /usr/bin/screen -dmS gpiohandler /home/pi/lomoremote/gpiohandler.py
+/usr/bin/sudo -u pi /usr/bin/screen -dmS gpioapp /home/pi/lomoremote/app.py

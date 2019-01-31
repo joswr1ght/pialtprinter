@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<link href='https://fonts.googleapis.com/css?family=PT+Sans:400,700' rel='stylesheet' type='text/css'>
+
+	<link rel="stylesheet" href="css/reset.css"> <!-- CSS reset -->
+	<link rel="stylesheet" href="css/style.css"> <!-- Resource style -->
+	<link rel="stylesheet" href="css/demo.css"> <!-- Demo style -->
+
+	<title>Pi Alt Printer</title>
+</head>
+<body>
+	<header>
+		<div class="cd-nugget-info">
+				Printer is: ON (UV accumulated 512 units, UV remaining 265 units)
+		</div> <!-- cd-nugget-info -->
+	</header>
+	<div class="cd-tabs js-cd-tabs">
+		<nav>
+			<ul class="cd-tabs__navigation js-cd-navigation">
+				<li><a data-content="time" class="cd-selected" href="#0">Time</a></li>
+				<li><a data-content="uv" href="#0">UV</a></li>
+				<li><a data-content="presets" href="#0">Presets</a></li>
+				<li><a data-content="control" href="#0">Control</a></li>
+			</ul> <!-- cd-tabs__navigation -->
+		</nav>
+
+		<ul class="cd-tabs__content js-cd-content">
+			<li data-content="time" class="cd-selected">
+				<form class="cd-form floating-labels">
+						<fieldset>
+							<div class="icon">
+								<label class="cd-label" for="cd-time">Time HH:MM:SS</label>
+								<input class="time" type="text" name="cd-time" id="cd-time" required>
+							</div>
+							<div>
+								<input type="submit" value="Go">
+							</div>
+						</fieldset>
+				</form>
+			</li>
+
+			<li data-content="uv">
+				<form class="cd-form floating-labels">
+					<fieldset>
+						<div class="icon">
+							<label class="cd-label" for="cd-uv">UV Units</label>
+							<input class="user" type="text" name="cd-uv" id="cd-uv" required>
+						</div>
+						<div>
+							<input type="submit" value="Go">
+						</div>
+					</fieldset>
+				</form>
+			</li>
+
+			<li data-content="presets">
+				<div>
+					<h4>Presets</h4>
+
+					<form class="cd-form floating-labels">
+						<fieldset>
+							<div class="icon">
+								<select class="budget">
+									<option value="uv:1337">Classic Cyanotype</option>
+									<option value="uv:13371">New Cyanotype</option>
+									<option value="uv:13372">Kallitype</option>
+									<option value="uv:13373">Argyrotype</option>
+								</select>
+							</div>
+							<div>
+								<input type="submit" value="Go">
+							</div>
+						</fieldset>
+				</div>
+			</li>
+
+			<li data-content="control">
+				<p>Store Lorem ipsum dolor sit amet, consectetur adipisicing elit. Earum recusandae rem animi accusamus quisquam reprehenderit sed voluptates, numquam, quibusdam velit dolores repellendus tempora corrupti accusantium obcaecati voluptate totam eveniet laboriosam?</p>
+
+				<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Eligendi, enim, pariatur. Ab assumenda, accusantium! Consequatur magni placeat quae eos dicta, cum expedita sunt facilis est impedit possimus dolorum sequi nostrum nobis sit praesentium molestias nulla laudantium fugit corporis nam ut saepe harum ipsam? Debitis accusantium, omnis repudiandae modi, distinctio illo voluptatibus aperiam odio veritatis, quam perferendis eaque ullam. Temporibus tempore ad voluptates explicabo ea sit deleniti ipsum quos dolores tempora odio, ab corporis molestiae, eaque optio, perferendis! Cumque libero quia modi! Totam magni rerum id iusto explicabo distinctio, magnam, labore sed nemo expedita velit quam, perspiciatis non temporibus sit minus voluptatum. Iste, cumque sunt suscipit facere iusto asperiores, ullam dolorum excepturi quidem ea quibusdam deserunt illo. Nesciunt voluptates repellat ipsam.</p>
+			</li>
+
+		</ul> <!-- cd-tabs__content -->
+	</div> <!-- cd-tabs -->
+<script src="js/main.js"></script> <!-- Resource JavaScript -->
+</body>
+</html>
