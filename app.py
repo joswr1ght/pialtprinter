@@ -5,7 +5,6 @@ import socket
 from time import sleep
 import pdb
 
-PIN=40
 sock = None
 app = Flask(__name__)
 
