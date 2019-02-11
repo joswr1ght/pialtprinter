@@ -14,7 +14,7 @@ import threading
 import queue
 import traceback
 
-
+PORT = 23456
 DHTPIN = 24  # GPIO 24, Pi pin 18
 FANPIN = 20  # GPIO 20, Pi pin 38
 BALLASTPIN = 26  # GPIO 26, Pi pin 37
@@ -124,8 +124,9 @@ def printerontime(seconds):
     return json.dumps({0: "OK"})
 
 
-def printeronexposure(uv):
+def printeronuv(uv):
     global exposurein_queue
+    #print("DEBUG: Setting target UV to %d"%uv)
     exposurein_queue.put({"targetuv": uv})
     return json.dumps({0: "OK"})
 
@@ -146,7 +147,7 @@ def getprintertimeremaining():
     try:
         status = statusout_queue.get_nowait()
     except queue.Empty:
-        return json.dumps({"error": "no time remaining information available"})
+        return json.dumps({"error": "no printer status information available"})
 
     try:
         return json.dumps({0: round(status["timeremaining"])})
@@ -159,15 +160,16 @@ def getprinteruvremaining():
     try:
         status = statusout_queue.get_nowait()
     except queue.Empty:
-        return json.dumps({"error": "no time remaining information available"})
+        return json.dumps({"error": "no printer status information available"})
     
+    print(status)
     try:
         return json.dumps({0: round(status["uvaremaining"])})
     except KeyError:
         return json.dumps({"error": "no UV-A remaining value set"})
 
 
-# Methods not part of the API for socket access
+### Methods not part of the API for socket access
 
 # Same as getuv(), but return as list not JSON
 def getuvraw():
@@ -180,9 +182,8 @@ def getuvraw():
         return (0, 0)  # ERROR
     return (uvread['0'][0], uvread['0'][1])
 
+
 # Process inbound data, returning JSON response
-
-
 def parsedata(data):
 
     # Parse and validate data
@@ -190,6 +191,7 @@ def parsedata(data):
         data = json.loads(data.decode('utf-8'))
     except json.decoder.JSONDecodeError:
         return json.dumps({"error": "JSON decode error"})
+
 
     if type(data) != dict:
         return json.dumps({"error": "Invalid data type"})
@@ -205,7 +207,6 @@ def parsedata(data):
     if "gethumidity" in data.keys():
         return gethumidity()
 
-    # XXX
     if "gettemphumidity" in data.keys():
         return gettemphumidity()
 
@@ -226,19 +227,19 @@ def parsedata(data):
 
     if "printerontime" in data.keys():
         return printerontime(data.get("printerontime"))
-    # XXX
+
     if "printeronuv" in data.keys():
-        return printeronexposure(data.get("printeronuv"))
-     # XXX
+        return printeronuv(data.get("printeronuv"))
+
     if "getprinterstatus" in data.keys():
         return getprinterstatus()
-    # XXX
+
     if "getprinterexposetype" in data.keys():
         return getprinterexposetype()
-   # XXX
+
     if "getprintertimeremaining" in data.keys():
         return getprintertimeremaining()
-    # XXX
+
     if "getprinteruvremaining" in data.keys():
         return getprinteruvremaining()
 
@@ -326,7 +327,7 @@ class FanControl(threading.Thread):
                 # print("DEBUG: Sleeping")
                 time.sleep(3)
 
-        print("FanControl: Stopper is set, exiting.")
+        print("## FanControl: Stopper is set, exiting.")
         fanoff()
 
 # exposurein_queue is a dictionary: { "targettime" : N, "targetuv" : N } (set one or the other)
@@ -349,19 +350,16 @@ class PrinterControl(threading.Thread):
             # Check queue dictionary for time-based or UV-based exposure type, process accordingly
             if ("targettime" in exposurein.keys() and exposurein["targettime"] > 0):
                 # Run the printer for the specified time in seconds
-                print("DEBUG: printing time-based for %d seconds" %
-                      exposurein["targettime"])
+                print("DEBUG: printing time-based for %d seconds" % exposurein["targettime"])
                 self.printtime(exposurein["targettime"])
             elif ("targetuv" in exposurein.keys() and exposurein["targetuv"] > 0):
                 # Run the printer for the specified UV measurement total
-                print("DEBUG: printing UV unit-based for %d units" %
-                      exposurein["targetuv"])
+                print("DEBUG: printing UV unit-based for %d units" % exposurein["targetuv"])
                 self.printuv(exposurein["targetuv"])
             else:
-                self.statusout_queue.put(
-                    {"error": "target time and target UV cannot both be zero"})
+                self.statusout_queue.put({"error": "target time and target UV cannot both be zero"})
 
-        print("PrinterControl: Stopper is set, exiting.")
+        print("## PrinterControl: Stopper is set, exiting.")
         printeroff()
 
     def printtime(self, seconds):
@@ -399,13 +397,15 @@ class PrinterControl(threading.Thread):
         cumulativeuvb = 0
         starttime = time.time()
 
+        print("DEBUG: turning printer on for UV exposure of %d"%targetexposureuva)
         printeron(PRINTEREXPOSETYPE_UV)
 
-        while (targetexposureuva > cumulativeuvb) and not self.stopper.is_set():
+        while (targetexposureuva > cumulativeuva) and not self.stopper.is_set():
             # Populate the statusout_queue (LIFO) with time remaining
             uv = getuvraw()
             cumulativeuva += uv[0]
             cumulativeuvb += uv[1]
+            #print("DEBUG: UV printing status -- target %d, cumulative %d"%(targetexposureuva, cumulativeuva))
 
             # Clear the queue. This seems stupid, but I don't want a huge memory hog of unnecessary data in the LIFO.
             while True:
@@ -414,19 +414,21 @@ class PrinterControl(threading.Thread):
                 except queue.Empty:
                     break
 
-                # Queue is a dictionary consisting of timeremaining, cumulativeuva, and cumulativeuvb keys and values
-                self.statusout_queue.put({"uvaremaining": targetexposureuva-cumulativeuva,
+            # Queue is a dictionary consisting of timeremaining, cumulativeuva, and cumulativeuvb keys and values
+            self.statusout_queue.put({"uvaremaining": targetexposureuva-cumulativeuva,
                                           "cumulativeuva": cumulativeuva,
                                           "cumulativeuvb": cumulativeuvb,
                                           "targetexposureuva": targetexposureuva,
                                           "cumulativetime": time.time() - starttime
                                           })
-                time.sleep(1)
-
-            printeroff()
+            time.sleep(1)
+        print("DEBUG: UV printing complete (%d units)"%cumulativeuva)
+        printeroff()
 
 
 if __name__ == "__main__":
+
+    print("# PiAltPrinter Command Handler v0.1\n")
 
     # Stopper for the fan control thread upon SIGINT
     stopper = threading.Event()
@@ -457,38 +459,41 @@ if __name__ == "__main__":
     GPIO.setup(BALLASTPIN, GPIO.OUT, initial=GPIO.LOW)
     GPIO.setup(FANPIN, GPIO.OUT, initial=GPIO.LOW)
 
-    print("Starting fan control worker")
+    print("## Starting fan control worker")
     fanworker.start()
 
-    print("Starting print control worker")
+    print("## Starting print control worker")
     printerworker.start()
 
     i2c = busio.I2C(board.SCL, board.SDA)
     try:
         veml = adafruit_veml6075.VEML6075(i2c, integration_time=800)
     except:
+        sys.stderr.write("\n\nCannot read from VEML6075 device over I2C bus.\n")
+        sys.stderr.write("Maybe try: sudo rmmod i2c_bcm2835 && sudo modprobe i2c_bcm2835\n")
+        sys.stderr.write("Because reasons.\n\n")
         traceback.print_exc()
         sys.exit(-1)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    serv = ("127.0.0.1", 23457)
+    serv = ("127.0.0.1", PORT)
     sock.bind(serv)
 
     sock.listen(1)
     while True:
-        print('waiting for a connection')
+        print('## Waiting for a connection')
         connection, client_address = sock.accept()
 
         try:
-            print('connection from', client_address)
+            print('### Connection from', client_address)
 
             while True:
                 data = connection.recv(64)
                 if data:
-                    print("Data: %s" % data)
+                    #print("Data: %s" % data)
                     connection.send(parsedata(data).encode())
                 else:
-                    print("no more data.")
+                    #print("no more data.")
                     break
         finally:
             connection.close()
