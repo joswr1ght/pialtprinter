@@ -13,6 +13,8 @@ import adafruit_veml6075
 import threading
 import queue
 import traceback
+import socketserver
+import os
 
 PORT = 23456
 DHTPIN = 24  # GPIO 24, Pi pin 18
@@ -22,6 +24,7 @@ TARGETTEMP = 84  # Fahrenheit
 exposurein_queue = None
 statusout_queue = None
 veml = None
+netshutdown = False
 
 PRINTEREXPOSETYPE_NONE = 0  # e.g. off
 PRINTEREXPOSETYPE_TIME = 1
@@ -263,7 +266,6 @@ def fanoff():
 
 
 class SignalHandler:
-    global sock
     #: The stop event that's shared by this handler and threads.
     stopper = None
 
@@ -280,8 +282,11 @@ class SignalHandler:
 
         https://docs.python.org/3/library/signal.html#signal.signal
         """
-
+        
         print("SignalHandler: exiting thread(s)")
+        global netshutdown
+        netshutdown=True
+
         self.stopper.set()
 
         # for worker in self.workers:
@@ -289,10 +294,6 @@ class SignalHandler:
 
         # print("DEBUG: GPIO cleanup")
         # GPIO.cleanup()
-        sock.shutdown(socket.SHUT_RDWR)
-        sock.close()
-
-        sys.exit(0)
 
 
 class FanControl(threading.Thread):
@@ -438,6 +439,23 @@ class PrinterControl(threading.Thread):
             except queue.Empty:
                 break
 
+# TCP handler thread class for the listening server
+class TcpHandler(socketserver.BaseRequestHandler):
+    def handle(self):
+        self.data = self.request.recv(1024).strip()
+        print("DEBUG: {} wrote: {}".format(self.client_address[0], self.data))
+        self.request.sendall(parsedata(self.data).encode('UTF-8'))
+
+class NetworkHandler(socketserver.TCPServer):
+    timeout = 3
+
+    def __init__(self, serverAddress, RequestHandlerClass):
+        socketserver.TCPServer.__init__(self, serverAddress, RequestHandlerClass)
+
+    def handle_timeout(self):
+        #print('{} - Timeout'.format(time.strftime('%d.%m.%Y %H:%M:%S', time.localtime())))
+        return
+
 if __name__ == "__main__":
 
     print("# PiAltPrinter Command Handler v0.1\n")
@@ -481,31 +499,15 @@ if __name__ == "__main__":
     try:
         veml = adafruit_veml6075.VEML6075(i2c, integration_time=800)
     except:
-        sys.stderr.write("\n\nCannot read from VEML6075 device over I2C bus.\n")
+        sys.stderr.write("\n\nCannot read from VEML6075 device over I2C bus. Make sure it is connected properly.\n")
         sys.stderr.write("Maybe try: sudo rmmod i2c_bcm2835 && sudo modprobe i2c_bcm2835\n")
         sys.stderr.write("Because reasons.\n\n")
         traceback.print_exc()
         sys.exit(-1)
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    serv = ("127.0.0.1", PORT)
-    sock.bind(serv)
+    print("## Starting network worker on 127.0.0.1:%d"%PORT)
+    server = NetworkHandler(("127.0.0.1", PORT), TcpHandler)
 
-    sock.listen(1)
-    while True:
-        print('## Waiting for a connection')
-        connection, client_address = sock.accept()
-
-        try:
-            print('### Connection from', client_address)
-
-            while True:
-                data = connection.recv(64)
-                if data:
-                    #print("Data: %s" % data)
-                    connection.send(parsedata(data).encode())
-                else:
-                    #print("no more data.")
-                    break
-        finally:
-            connection.close()
+    while(not netshutdown):
+        server.handle_request()
+    print("## NetControl: Stopper is set, exiting.")

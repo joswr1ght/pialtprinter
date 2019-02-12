@@ -15,7 +15,7 @@
 <body>
 	<header>
 		<div class="cd-nugget-info">
-				Printer is: ON (UV accumulated 512 units, UV remaining 265 units)
+				{{ printerstatus }}
 		</div> <!-- cd-nugget-info -->
 	</header>
 	<div class="cd-tabs js-cd-tabs">
@@ -34,7 +34,7 @@
 						<fieldset>
 							<div class="icon">
 								<label class="cd-label" for="cd-time">Time HH:MM:SS</label>
-								<input class="time" type="text" name="cd-time" id="cd-time" required>
+								<input class="time" type="text" name="time" id="cd-time" required>
 							</div>
 							<div>
 								<input type="submit" value="Go">

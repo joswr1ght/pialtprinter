@@ -1,1 +1,1 @@
-rsync -ave ssh --exclude='.git/' . piprint:pialtprinter/
+rsync -ave ssh --delete --exclude='.git/' . piprint:pialtprinter/
