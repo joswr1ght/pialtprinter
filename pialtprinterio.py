@@ -99,8 +99,10 @@ def gettargettemp():
 
 def getuv():
     global veml
-    uva = veml.uva
-    uvb = veml.uvb
+    # Don't tell @evanbooth
+    uva = veml.uva if veml.uva > 0 else 0
+    uvb = veml.uvb if veml.uvb > 0 else 0
+
     #print("UVA %f, UVB %f" % (uva, uvb))
     return json.dumps({0: (uva, uvb)})
 
@@ -511,3 +513,4 @@ if __name__ == "__main__":
     while(not netshutdown):
         server.handle_request()
     print("## NetControl: Stopper is set, exiting.")
+    server.server_close()

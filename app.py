@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import RPi.GPIO as GPIO
 import socket  
 from time import sleep
@@ -22,6 +22,7 @@ def getremaining():
     if "error" in exposuretypejson.keys():
         return dict(printerstatus="No current exposure")
 
+    print(exposuretypejson)
     exposuretype = exposuretypejson["0"]
     if exposuretype == "time":
         return dict(printerstatus=gettimeremaining())
@@ -59,7 +60,7 @@ def getuvremaining():
 def printtime(time):
     try:
         message = '{"printerontime": %d}'%int(time)
-        print("DEBUG: %s"%message)
+        #print("DEBUG: %s"%message)
         response = json.loads(sendmessage(message).decode('UTF-8'))
     except json.JSONDecodeError:
         return -1
@@ -69,6 +70,18 @@ def printtime(time):
 
     return 0
 
+def printuv(uv):
+    try:
+        message = '{"printeronuv": %d}'%int(uv)
+        #print("DEBUG: %s"%message)
+        response = json.loads(sendmessage(message).decode('UTF-8'))
+    except json.JSONDecodeError:
+        return -1
+
+    if "error" in response.keys():
+        return -2
+
+    return 0
 
 def sendmessage(message):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -83,10 +96,16 @@ def sendmessage(message):
 
 @app.route('/')
 def index():
-    time=request.args.get('time')
-    if (time != None):
-        printtime(time)
+    if (request.args.get('time') != None):
+        printtime(request.args.get('time'))
+    elif (request.args.get('uv') != None):
+        printuv(request.args.get('uv'))
+        
     return render_template('index.html')
+
+@app.route('/printerstatus')
+def printerstatus():
+    return jsonify(getremaining())
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')

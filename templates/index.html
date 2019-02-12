@@ -11,12 +11,15 @@
 	<link rel="stylesheet" href="static/css/demo.css"> <!-- Demo style -->
 
 	<title>Pi Alt Printer</title>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script> 
+	<script src="static/js/printerstatus.js"></script>
 </head>
-<body>
+
+<body onload="updatepage()">
 	<header>
 		<div class="cd-nugget-info">
-				{{ printerstatus }}
-		</div> <!-- cd-nugget-info -->
+				<span id="printerstatus"></span>
+		</div> 
 	</header>
 	<div class="cd-tabs js-cd-tabs">
 		<nav>
@@ -35,8 +38,6 @@
 							<div class="icon">
 								<label class="cd-label" for="cd-time">Time HH:MM:SS</label>
 								<input class="time" type="text" name="time" id="cd-time" required>
-							</div>
-							<div>
 								<input type="submit" value="Go">
 							</div>
 						</fieldset>
@@ -49,8 +50,6 @@
 						<div class="icon">
 							<label class="cd-label" for="uv">UV Units</label>
 							<input class="uv" type="text" name="uv" id="uv" required>
-						</div>
-						<div>
 							<input type="submit" value="Go">
 						</div>
 					</fieldset>
@@ -70,8 +69,6 @@
 									<option value="uv:13372">Kallitype</option>
 									<option value="uv:13373">Argyrotype</option>
 								</select>
-							</div>
-							<div>
 								<input type="submit" value="Go">
 							</div>
 						</fieldset>

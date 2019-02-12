@@ -24,6 +24,23 @@ a {
   text-decoration: none;
 }
 
+label {
+  font-size: 1.4rem;
+  line-height: 1.6;
+  color: #8493bf;
+  margin-bottom: 2em;
+  margin-right: 1em;
+}
+
+input[type=button], input[type=submit], input[type=reset] {
+  background-color: #8493bf;
+  border: none;
+  color: white;
+  padding: 4px 8px;
+  text-decoration: none;
+  margin: 4px 2px;
+}
+
 img, embed, object, video, svg {
   max-width: 100%;
 }
