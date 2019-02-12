@@ -102,6 +102,11 @@ def getuv():
     return json.dumps({0: (uva, uvb)})
 
 
+def getexposuretype():
+    global PRINTEREXPOSETYPE
+    return json.dumps({0: PRINTEREXPOSETYPES[PRINTEREXPOSETYPE]})
+
+
 def printeron(exposuretype=PRINTEREXPOSETYPE_FIXED):
     global GPIO, PRINTEREXPOSETYPE
     # Fan is controlled using the relay board channel 2
@@ -218,6 +223,9 @@ def parsedata(data):
 
     if "getuv" in data.keys():
         return getuv()
+
+    if "getexposuretype" in data.keys():
+        return getexposuretype()
 
     if "printeron" in data.keys():
         return printeron()
@@ -375,21 +383,22 @@ class PrinterControl(threading.Thread):
             cumulativeuvb += uv[1]
 
             # Clear the queue. This seems stupid, but I don't want a huge memory hog of unnecessary data in the LIFO.
-            while True:
-                try:
-                    self.statusout_queue.get_nowait()
-                except queue.Empty:
-                    break
-
+            self.clearqueue()
+            
             # Queue is a dictionary consisting of timeremaining, cumulativeuva, and cumulativeuvb keys and values
             self.statusout_queue.put({"timeremaining": starttime+seconds - time.time(),
                                       "cumulativeuva": cumulativeuva,
                                       "cumulativeuvb": cumulativeuvb,
                                       })
-            time.sleep(1)
+            time.sleep(.5)
         
-        #print("DEBUG: Turning printer off")
         printeroff()
+        self.clearqueue()
+        # Queue is a dictionary consisting of timeremaining, cumulativeuva, and cumulativeuvb keys and values
+        self.statusout_queue.put({"timeremaining": 0,
+                                "cumulativeuva": cumulativeuva,
+                                "cumulativeuvb": cumulativeuvb,
+                                })
 
     # Expose for the target exposure value in UVA units
     def printuv(self, targetexposureuva):
@@ -408,11 +417,7 @@ class PrinterControl(threading.Thread):
             #print("DEBUG: UV printing status -- target %d, cumulative %d"%(targetexposureuva, cumulativeuva))
 
             # Clear the queue. This seems stupid, but I don't want a huge memory hog of unnecessary data in the LIFO.
-            while True:
-                try:
-                    self.statusout_queue.get_nowait()
-                except queue.Empty:
-                    break
+            self.clearqueue()
 
             # Queue is a dictionary consisting of timeremaining, cumulativeuva, and cumulativeuvb keys and values
             self.statusout_queue.put({"uvaremaining": targetexposureuva-cumulativeuva,
@@ -421,10 +426,17 @@ class PrinterControl(threading.Thread):
                                           "targetexposureuva": targetexposureuva,
                                           "cumulativetime": time.time() - starttime
                                           })
-            time.sleep(1)
+            time.sleep(.5)
         print("DEBUG: UV printing complete (%d units)"%cumulativeuva)
         printeroff()
 
+    def clearqueue(self):
+        # CLear the statusout queue
+        while True:
+            try:
+                self.statusout_queue.get_nowait()
+            except queue.Empty:
+                break
 
 if __name__ == "__main__":
 
