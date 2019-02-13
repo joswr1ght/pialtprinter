@@ -63,8 +63,14 @@ def getuvremaining():
     return "%d UV units remaining"%response["0"]
 
 def printtime(time):
+    timeval = time.split(":")
+    if len(timeval) == 3:
+        printtime = int(timeval[0])*3600 + int(timeval[1])*60 + int(timeval[2])
+    else:
+        printtime = int(timeval[0])
+
     try:
-        message = '{"printerontime": %d}'%int(time)
+        message = '{"printerontime": %d}'%printtime
         #print("DEBUG: %s"%message)
         response = json.loads(sendmessage(message).decode('UTF-8'))
     except json.JSONDecodeError:
@@ -101,7 +107,7 @@ def sendmessage(message):
 
 @app.route('/')
 def index():
-    
+
     if (request.args.get('time') != None):
         if (not isprinteron()):
             printtime(request.args.get('time'))
