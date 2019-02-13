@@ -17,5 +17,5 @@ function getstatus() {
 
 function updatepage() {
     console.log("Running updatepage()")
-    var updatestatus = setInterval(getstatus, 5000);
+    var updatestatus = setInterval(getstatus, 3000);
 }

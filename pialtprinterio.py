@@ -14,7 +14,8 @@ import threading
 import queue
 import traceback
 import socketserver
-import os
+import datetime
+
 
 PORT = 23456
 DHTPIN = 24  # GPIO 24, Pi pin 18
@@ -172,7 +173,7 @@ def getprinteruvremaining():
     except queue.Empty:
         return json.dumps({"error": "no printer status information available"})
     
-    print(status)
+    #print(status)
     try:
         return json.dumps({0: round(status["uvaremaining"])})
     except KeyError:
@@ -308,19 +309,19 @@ class FanControl(threading.Thread):
 
     def run(self):
         targettemp = self.targettempin_queue.get()
-        # print("DEBUG: target temp is %f"%(targettemp))
+        #print("DEBUG: target temp is %f"%(targettemp))
 
         while not self.stopper.is_set():
-            # print("DEBUG: stopper.is_set() returns %d"%(self.stopper.is_set()))
+            #print("DEBUG: stopper.is_set() returns %d"%(self.stopper.is_set()))
             try:
                 # get temp
                 temp = float(json.loads(gettemp())['0'])
-                # print("DEBUG: temp is %f"%(temp))
+                #print("DEBUG: temp is %f"%(temp))
 
                 try:
                     targettemp = self.targettempin_queue.get(False)
                 except queue.Empty:
-                    # print("Empty queue")
+                    #print("Empty queue")
                     pass  # target temp has not changed
 
                 if (temp > targettemp and self.fanstatus == 0):
@@ -345,10 +346,16 @@ class FanControl(threading.Thread):
 class PrinterControl(threading.Thread):
     def __init__(self, exposurein_queue, statusout_queue, stopper):
         super().__init__()
+        self.reportfileprefix = "/tmp/pialtprinter"
         self.exposurein_queue = exposurein_queue
         self.statusout_queue = statusout_queue  # LIFO queue
         self.stopper = stopper
         self.printerstatus = 0  # off
+        self.cumulativea = 0
+        self.cumulativeb = 0
+        self.totaltime = 0
+        self.targettime = 0
+        self.targetexposureuva = 0
 
     def run(self):
         while not self.stopper.is_set():
@@ -361,11 +368,11 @@ class PrinterControl(threading.Thread):
             # Check queue dictionary for time-based or UV-based exposure type, process accordingly
             if ("targettime" in exposurein.keys() and exposurein["targettime"] > 0):
                 # Run the printer for the specified time in seconds
-                print("DEBUG: printing time-based for %d seconds" % exposurein["targettime"])
+                #print("DEBUG: printing time-based for %d seconds" % exposurein["targettime"])
                 self.printtime(exposurein["targettime"])
             elif ("targetuv" in exposurein.keys() and exposurein["targetuv"] > 0):
                 # Run the printer for the specified UV measurement total
-                print("DEBUG: printing UV unit-based for %d units" % exposurein["targetuv"])
+                #print("DEBUG: printing UV unit-based for %d units" % exposurein["targetuv"])
                 self.printuv(exposurein["targetuv"])
             else:
                 self.statusout_queue.put({"error": "target time and target UV cannot both be zero"})
@@ -376,6 +383,7 @@ class PrinterControl(threading.Thread):
     def printtime(self, seconds):
         printeron(PRINTEREXPOSETYPE_TIME)
         starttime = time.time()
+        self.totaltime = seconds
         cumulativeuva = 0
         cumulativeuvb = 0
 
@@ -396,18 +404,23 @@ class PrinterControl(threading.Thread):
             time.sleep(.5)
         
         printeroff()
+
+        # Log the print information
+        self.report("time")
+
         self.clearqueue()
         # Queue is a dictionary consisting of timeremaining, cumulativeuva, and cumulativeuvb keys and values
         self.statusout_queue.put({"timeremaining": 0,
-                                "cumulativeuva": cumulativeuva,
-                                "cumulativeuvb": cumulativeuvb,
-                                })
+                                  "cumulativeuva": cumulativeuva,
+                                  "cumulativeuvb": cumulativeuvb,
+                                  })
 
     # Expose for the target exposure value in UVA units
     def printuv(self, targetexposureuva):
         cumulativeuva = 0
         cumulativeuvb = 0
         starttime = time.time()
+        self.targetexposureuva = targetexposureuva
 
         print("DEBUG: turning printer on for UV exposure of %d"%targetexposureuva)
         printeron(PRINTEREXPOSETYPE_UV)
@@ -432,6 +445,26 @@ class PrinterControl(threading.Thread):
             time.sleep(.5)
         print("DEBUG: UV printing complete (%d units)"%cumulativeuva)
         printeroff()
+        self.totaltime = time.time() - starttime
+        self.cumulativea = cumulativeuva
+        self.cumulativeb = cumulativeuvb
+        
+        # Log the print information
+        self.report("uv")
+
+    def report(self, printtype):
+        try:
+            report = open(self.reportfileprefix + "-printtype.txt", 'w+')
+            if printtype == "time":
+                # Report is timestamp,cumulativeuva,cumulativeuvb,time
+                report.write("%s,%s,%s,%s\n"%(datetime.datetime.now(), self.cumulativea, self.cumulativeb, self.targettime))
+            if printtype == "time":
+                # Report is timestamp,cumulativetime,uv,totaltime
+                report.write("%s,%s,%s,%s\n"%(datetime.datetime.now(), self.totaltime, self.targetexposureuva, self.totaltime))
+        except Exception as e:
+            print(e)
+        finally:
+            report.close()
 
     def clearqueue(self):
         # CLear the statusout queue
@@ -445,7 +478,7 @@ class PrinterControl(threading.Thread):
 class TcpHandler(socketserver.BaseRequestHandler):
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        print("DEBUG: {} wrote: {}".format(self.client_address[0], self.data))
+        #print("DEBUG: {} wrote: {}".format(self.client_address[0], self.data))
         self.request.sendall(parsedata(self.data).encode('UTF-8'))
 
 class NetworkHandler(socketserver.TCPServer):

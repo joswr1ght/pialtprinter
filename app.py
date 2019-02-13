@@ -2,18 +2,13 @@
 from flask import Flask, render_template, request, jsonify
 import RPi.GPIO as GPIO
 import socket  
-from time import sleep
-import pdb
 import json
 
 PORT = 23456
-
-sock = None
 app = Flask(__name__)
 
 @app.context_processor
 def getremaining():
-    exposuretype = ""
     try:
         exposuretypejson = json.loads(sendmessage('{"getexposuretype": 0}').decode('UTF-8'))
     except json.JSONDecodeError:
@@ -22,7 +17,7 @@ def getremaining():
     if "error" in exposuretypejson.keys():
         return dict(printerstatus="No current exposure")
 
-    print(exposuretypejson)
+    #print(exposuretypejson)
     exposuretype = exposuretypejson["0"]
     if exposuretype == "time":
         return dict(printerstatus=gettimeremaining())
@@ -33,6 +28,16 @@ def getremaining():
     else:
         return dict(printerstatus="Unrecognized exposure type: %s"%exposuretypejson)
 
+def isprinteron():
+    try:
+        exposuretypejson = json.loads(sendmessage('{"getexposuretype": 0}').decode('UTF-8'))
+    except json.JSONDecodeError:
+        return dict(printerstatus="Error decoding printer response")
+    
+    if "error" in exposuretypejson.keys():
+        return dict(printerstatus="No current exposure")
+
+    return not (exposuretypejson["0"] == "none")
 
 def gettimeremaining():
     try:
@@ -96,10 +101,13 @@ def sendmessage(message):
 
 @app.route('/')
 def index():
+    
     if (request.args.get('time') != None):
-        printtime(request.args.get('time'))
+        if (not isprinteron()):
+            printtime(request.args.get('time'))
     elif (request.args.get('uv') != None):
-        printuv(request.args.get('uv'))
+        if (not isprinteron()):
+            printuv(request.args.get('uv'))
         
     return render_template('index.html')
 
