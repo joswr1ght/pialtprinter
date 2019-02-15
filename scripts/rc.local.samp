@@ -1,2 +1,3 @@
-/usr/bin/sudo -u pi /usr/bin/screen -dmS gpiohandler /home/pi/lomoremote/gpiohandler.py
-/usr/bin/sudo -u pi /usr/bin/screen -dmS gpioapp /home/pi/lomoremote/app.py
+/usr/bin/sudo /sbin/rmmod i2c_bcm2835 ; /usr/bin/sudo /sbin/modprobe i2c_bcm2835
+/usr/bin/sudo -u pi /usr/bin/screen -dmS pialtprinterio /home/pi/pialtprinter/pialtprinterio.py
+/usr/bin/sudo -u pi /usr/bin/screen -dmS pialtprinterweb /home/pi/pialtprinter/app.py

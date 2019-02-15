@@ -1,3 +1,6 @@
 Add print type defaults for UV exposure (Cyanotype, New Cyanotype, etc.)
-Parse time in HH:MM:SS or SSSS format
 Fix TCP server clean shutdown
+Multicast DNS resolution for pialtprinter.local
+Fix button style
+Nginx forward TCP/80 to TCP/5000 automatically
+Login authentication

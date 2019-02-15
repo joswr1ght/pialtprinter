@@ -20,7 +20,7 @@ import datetime
 PORT = 23456
 DHTPIN = 24  # GPIO 24, Pi pin 18
 FANPIN = 20  # GPIO 20, Pi pin 38
-BALLASTPIN = 26  # GPIO 26, Pi pin 37
+BALLASTPIN = 21  # GPIO 21, Pi pin 40
 TARGETTEMP = 84  # Fahrenheit
 exposurein_queue = None
 statusout_queue = None
