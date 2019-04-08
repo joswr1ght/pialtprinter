@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<link href='https://fonts.googleapis.com/css?family=PT+Sans:400,700' rel='stylesheet' type='text/css'>
+
+	<link rel="stylesheet" href="static/css/reset.css"> <!-- CSS reset -->
+	<link rel="stylesheet" href="static/css/style.css"> <!-- Resource style -->
+	<link rel="stylesheet" href="static/css/demo.css"> <!-- Demo style -->
+
+	<title>Pi Alt Printer</title>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script> 
+	<script src="static/js/printerstatus.js"></script>
+</head>
+
+<body>
+	<header>
+		<div class="cd-nugget-info">
+				<span id="printerstatus"></span>
+		</div> 
+	</header>
+    <p>
+    Printer is stopped.
+    </p>
+    <script>
+        window.setTimeout(function() { window.location.href = "/"; }, 5000);
+    </script>
+
+	<footer>
+		<span id="error"></span>
+	</footer>
+<script src="static/js/main.js"></script> <!-- Resource JavaScript -->
+</body>
+</html>

@@ -95,7 +95,8 @@ def settargettemp(target):
 
 def gettargettemp():
     global TARGETTEMP
-    return json.dumps({0: TARGETTEMP})
+    tempf = ((TARGETTEMP*9)/5)+32
+    return json.dumps({0: '{:.2f}'.format(TARGETTEMP)})
 
 
 def getuv():

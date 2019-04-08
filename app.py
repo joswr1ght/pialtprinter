@@ -7,7 +7,6 @@ import json
 PORT = 23456
 app = Flask(__name__)
 
-@app.context_processor
 def getremaining():
     try:
         exposuretypejson = json.loads(sendmessage('{"getexposuretype": 0}').decode('UTF-8'))
@@ -62,7 +61,17 @@ def gettemperature():
 
     if "error" in response.keys():
         return "Error reading temperature: %s"%response["error"]
+    return response["0"]
 
+# Returns temp in Fahrenheit
+def gettargettemperature():
+    try:
+        response = json.loads(sendmessage('{"gettargettemp": 0}').decode('UTF-8'))
+    except json.JSONDecodeError:
+        return "Error decoding printer response"
+
+    if "error" in response.keys():
+        return "Error reading target temperature: %s"%response["error"]
     return response["0"]
 
 # Returns current humidity
@@ -76,6 +85,7 @@ def gethumidity():
         return "Error reading humidity: %s"%response["error"]
 
     return response["0"]
+
 
 def getuvremaining():
     try:
@@ -122,6 +132,15 @@ def printuv(uv):
 
     return 0
 
+def stopprinter():
+    try:
+        exposuretypejson = json.loads(sendmessage('{"printeroff": 0}').decode('UTF-8'))
+    except json.JSONDecodeError:
+        return dict(printerstatus="Error decoding printer response for stopprinter")
+    if "error" in exposuretypejson.keys():
+        return dict(printerstatus="Stop command returned an error: " + exposuretypejson["error"])
+    return 0
+
 def sendmessage(message):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serv = ("127.0.0.1", PORT)
@@ -135,7 +154,6 @@ def sendmessage(message):
 
 @app.route('/')
 def index():
-
     if (request.args.get('time') != None):
         if (not isprinteron()):
             printtime(request.args.get('time'))
@@ -145,9 +163,14 @@ def index():
         
     return render_template('index.html')
 
+@app.route('/stop')
+def stop():
+    stopprinter()
+    return render_template('stop.html')
+
 @app.route('/printerstatus')
 def printerstatus():
-    return jsonify(getremaining())
+    return jsonify([getremaining(), gettemperature(), gettargettemperature(), gethumidity()])
 
 if __name__ == '__main__':
     app.run(debug=False, threaded=True, host='0.0.0.0')
