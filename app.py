@@ -53,6 +53,29 @@ def gettimeremaining():
 
     return "%d min, %d sec remaining"%(minutes, seconds)
 
+# Returns temp in Fahrenheit
+def gettemperature():
+    try:
+        response = json.loads(sendmessage('{"gettemp": 0}').decode('UTF-8'))
+    except json.JSONDecodeError:
+        return "Error decoding printer response"
+
+    if "error" in response.keys():
+        return "Error reading temperature: %s"%response["error"]
+
+    return response["0"]
+
+# Returns current humidity
+def gethumidity():
+    try:
+        response = json.loads(sendmessage('{"gethumidity": 0}').decode('UTF-8'))
+    except json.JSONDecodeError:
+        return "Error decoding printer response"
+
+    if "error" in response.keys():
+        return "Error reading humidity: %s"%response["error"]
+
+    return response["0"]
 
 def getuvremaining():
     try:
