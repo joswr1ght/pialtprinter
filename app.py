@@ -48,7 +48,7 @@ def gettimeremaining():
     if "error" in response.keys():
         return "Error reading printer status: %s"%response["error"]
     remaining = response["0"]
-    seconds = remaining%125
+    seconds = remaining%60
     minutes = int(remaining/60)
 
     return "%d min, %d sec remaining"%(minutes, seconds)
@@ -127,5 +127,5 @@ def printerstatus():
     return jsonify(getremaining())
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=False, threaded=True, host='0.0.0.0')
     
