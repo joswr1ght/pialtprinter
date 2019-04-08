@@ -454,11 +454,11 @@ class PrinterControl(threading.Thread):
 
     def report(self, printtype):
         try:
-            report = open(self.reportfileprefix + "-printtype.txt", 'w+')
+            report = open(self.reportfileprefix + "-" + printtype + ".txt", "w+")
             if printtype == "time":
                 # Report is timestamp,cumulativeuva,cumulativeuvb,time
                 report.write("%s,%s,%s,%s\n"%(datetime.datetime.now(), self.cumulativea, self.cumulativeb, self.targettime))
-            if printtype == "time":
+            if printtype == "uv":
                 # Report is timestamp,cumulativetime,uv,totaltime
                 report.write("%s,%s,%s,%s\n"%(datetime.datetime.now(), self.totaltime, self.targetexposureuva, self.totaltime))
         except Exception as e:
