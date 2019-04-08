@@ -47,8 +47,11 @@ def gettimeremaining():
 
     if "error" in response.keys():
         return "Error reading printer status: %s"%response["error"]
+    remaining = response["0"]
+    seconds = remaining%125
+    minutes = int(remaining/60)
 
-    return "%d seconds remaining"%response["0"]
+    return "%d min, %d sec remaining"%(minutes, seconds)
 
 
 def getuvremaining():
@@ -64,9 +67,11 @@ def getuvremaining():
 
 def printtime(time):
     timeval = time.split(":")
-    if len(timeval) == 3:
+    if len(timeval) == 3:   # Submitted as HH:MM:SS
         printtime = int(timeval[0])*3600 + int(timeval[1])*60 + int(timeval[2])
-    else:
+    elif len(timeval) == 2: # Submitted as MM:SS
+        printtime = int(timeval[0])*60 + int(timeval[1])
+    else:                   # Submitted as SS
         printtime = int(timeval[0])
 
     try:
