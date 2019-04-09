@@ -468,9 +468,6 @@ class PrinterControl(threading.Thread):
             else:
                 report=open(filename, "a")
 
-            import pdb
-            pdb.set_trace()
-
             now = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
             if printtype == "time":
                 report.write("%s,%d,%s\n"%(now, self.cumulativeuva, self.totaltime))
