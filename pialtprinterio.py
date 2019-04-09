@@ -15,6 +15,7 @@ import queue
 import traceback
 import socketserver
 import datetime
+import os
 
 
 PORT = 23456
@@ -347,13 +348,13 @@ class FanControl(threading.Thread):
 class PrinterControl(threading.Thread):
     def __init__(self, exposurein_queue, statusout_queue, stopper):
         super().__init__()
-        self.reportfileprefix = "/tmp/pialtprinter"
+        self.reportfileprefix = "/home/pi/printreport"
         self.exposurein_queue = exposurein_queue
         self.statusout_queue = statusout_queue  # LIFO queue
         self.stopper = stopper
         self.printerstatus = 0  # off
-        self.cumulativea = 0
-        self.cumulativeb = 0
+        self.cumulativeuva = 0
+        self.cumulativeuvb = 0
         self.totaltime = 0
         self.targettime = 0
         self.targetexposureuva = 0
@@ -396,15 +397,18 @@ class PrinterControl(threading.Thread):
 
             # Clear the queue. This seems stupid, but I don't want a huge memory hog of unnecessary data in the LIFO.
             self.clearqueue()
-            
+
             # Queue is a dictionary consisting of timeremaining, cumulativeuva, and cumulativeuvb keys and values
             self.statusout_queue.put({"timeremaining": starttime+seconds - time.time(),
                                       "cumulativeuva": cumulativeuva,
                                       "cumulativeuvb": cumulativeuvb,
                                       })
             time.sleep(.5)
-        
+
         printeroff()
+
+        self.cumulativeuva = cumulativeuva
+        self.cumulativeuvb = cumulativeuvb
 
         # Log the print information
         self.report("time")
@@ -423,7 +427,7 @@ class PrinterControl(threading.Thread):
         starttime = time.time()
         self.targetexposureuva = targetexposureuva
 
-        print("DEBUG: turning printer on for UV exposure of %d"%targetexposureuva)
+        #print("DEBUG: turning printer on for UV exposure of %d"%targetexposureuva)
         printeron(PRINTEREXPOSETYPE_UV)
 
         while (targetexposureuva > cumulativeuva) and not self.stopper.is_set():
@@ -444,28 +448,39 @@ class PrinterControl(threading.Thread):
                                           "cumulativetime": time.time() - starttime
                                           })
             time.sleep(.5)
-        print("DEBUG: UV printing complete (%d units)"%cumulativeuva)
         printeroff()
+
         self.totaltime = time.time() - starttime
-        self.cumulativea = cumulativeuva
-        self.cumulativeb = cumulativeuvb
+        self.cumulativeuva = cumulativeuva
+        self.cumulativeuvb = cumulativeuvb
         
         # Log the print information
         self.report("uv")
 
     def report(self, printtype):
+        report = None
         try:
-            report = open(self.reportfileprefix + "-" + printtype + ".txt", "w+")
+            # Check if file exists; if not add header record
+            filename = self.reportfileprefix + "-" + printtype + ".txt"
+            if (not os.path.isfile(filename)):
+                report=open(filename, "w")
+                report.write("timestamp,uva,time\n")
+            else:
+                report=open(filename, "a")
+
+            import pdb
+            pdb.set_trace()
+
+            now = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
             if printtype == "time":
-                # Report is timestamp,cumulativeuva,cumulativeuvb,time
-                report.write("%s,%s,%s,%s\n"%(datetime.datetime.now(), self.cumulativea, self.cumulativeb, self.targettime))
+                report.write("%s,%d,%s\n"%(now, self.cumulativeuva, self.totaltime))
             if printtype == "uv":
-                # Report is timestamp,cumulativetime,uv,totaltime
-                report.write("%s,%s,%s,%s\n"%(datetime.datetime.now(), self.totaltime, self.targetexposureuva, self.totaltime))
+                report.write("%s,%d,%s\n"%(now, self.targetexposureuva, self.totaltime))
         except Exception as e:
             print(e)
         finally:
-            report.close()
+            if (report):
+                report.close()
 
     def clearqueue(self):
         # CLear the statusout queue
